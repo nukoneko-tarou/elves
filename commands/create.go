@@ -49,7 +49,7 @@ func (c *Create) run(cmd *cobra.Command, _ []string) error {
 		os.Exit(1)
 	}
 
-	err = c.createDirectory(tree[0].Contents)
+	err = c.createDirectory(tree[0].Contents, "./")
 	if err != nil {
 		fmt.Println(err.Error())
 		os.Exit(1)
@@ -73,12 +73,17 @@ func (c *Create) perseJson() (TreeJson, error) {
 	return fc, nil
 }
 
-func (c *Create) createDirectory(contents []DirectoryJson) error {
+func (c *Create) createDirectory(contents []DirectoryJson, parentName string) error {
 	for _, v := range contents {
 		if v.Type == "directory" {
-			if err := os.Mkdir(v.Name, 0777); err != nil {
+			path := parentName + "/" + v.Name
+			if err := os.Mkdir(path, 0777); err != nil {
 				fmt.Println(err.Error())
 				os.Exit(1)
+			}
+
+			if len(v.Contents) != 0 {
+				c.createDirectory(v.Contents, path)
 			}
 		}
 	}
