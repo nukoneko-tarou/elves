@@ -26,7 +26,7 @@ func NewVersion() *Version {
 }
 
 func (c *Version) run(cmd *cobra.Command, _ []string) error {
-	fmt.Println("elves version 0.1")
+	fmt.Println("elves version 1.0")
 
 	return nil
 }
