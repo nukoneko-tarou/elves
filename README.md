@@ -6,6 +6,11 @@ command and is ready to use!
 ```shell
 go install github.com/nukoneko-tarou/elves@latest
 ```
+or
+```
+brew tap nukoneko-tarou/cli-tool
+brew install nukoneko-tarou/cli-tool/elves
+```
 
 # Usage
 Specify a json file after the create command.
