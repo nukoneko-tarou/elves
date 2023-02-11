@@ -1,7 +1,7 @@
 #!/bin/sh
 
 SOURCE=elves
-VERSION=v1.0.0
+VERSION=$1
 
 GOOS=darwin  GOARCH=amd64 go build -o ./binary/${SOURCE}_${VERSION}_darwin_amd64 ${SOURCE}.go
 GOOS=darwin  GOARCH=arm64 go build -o ./binary/${SOURCE}_${VERSION}_darwin_arm64 ${SOURCE}.go
