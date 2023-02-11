@@ -1,7 +1,7 @@
 /*
 Copyright © 2023 nukoneko-tarou
 */
-package main
+package elves
 
 import (
 	"os"
