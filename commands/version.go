@@ -19,14 +19,12 @@ func NewVersion() *Version {
 		Use:   "version",
 		Short: "version",
 		Long:  `version`,
-		RunE:  cmd.run,
+		Run:   cmd.run,
 	}
 
 	return cmd
 }
 
-func (c *Version) run(cmd *cobra.Command, _ []string) error {
+func (c *Version) run(cmd *cobra.Command, _ []string) {
 	fmt.Println("elves version 1.0.0")
-
-	return nil
 }

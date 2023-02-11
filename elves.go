@@ -4,6 +4,7 @@ Copyright © 2023 nukoneko-tarou
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/nukoneko-tarou/elves/commands"
@@ -21,6 +22,7 @@ func main() {
 	cmd.AddCommand(commands.NewCreate().Cmd)
 
 	if err := cmd.Execute(); err != nil {
+		fmt.Println(err.Error())
 		os.Exit(1)
 	}
 }
