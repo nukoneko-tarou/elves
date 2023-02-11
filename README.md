@@ -70,3 +70,10 @@ e.g.
 ```shell
 elves create ./sample.json --permission 777
 ```
+
+### --gitkeep, -g
+Create .gitkeep file
+e.g.
+```shell
+elves create ./sample.json --gitkeep
+```
