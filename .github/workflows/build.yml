@@ -22,15 +22,15 @@ jobs:
           go-version: ${{ matrix.go-version }}
 
       - name: Build
-        run: sh ./build/package/build.sh ${{ github.event.inputs.name }}
+        run: sh ./build/package/build.sh ${{ github.event.inputs.version }}
 
       - name: Upload build file
         uses: actions/upload-artifact@v3
         with:
           name: go-build-data
           path: |
-            binary/elves_${{ github.event.inputs.name }}_darwin_amd64
-            binary/elves_${{ github.event.inputs.name }}_darwin_arm64
-            binary/elves_${{ github.event.inputs.name }}_linux_364
-            binary/elves_${{ github.event.inputs.name }}_linux_amd64
-            binary/elves_${{ github.event.inputs.name }}_linux_arm64
+            binary/elves_${{ github.event.inputs.version }}_darwin_amd64
+            binary/elves_${{ github.event.inputs.version }}_darwin_arm64
+            binary/elves_${{ github.event.inputs.version }}_linux_364
+            binary/elves_${{ github.event.inputs.version }}_linux_amd64
+            binary/elves_${{ github.event.inputs.version }}_linux_arm64
