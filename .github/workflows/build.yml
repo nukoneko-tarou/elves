@@ -9,12 +9,16 @@ jobs:
       matrix:
         go-version: ['^1.20']
     steps:
+      - uses: action/checkout@v3
+
       - name: set up go
         uses: actions/setup-go@v4
         with:
           go-version: ${{ matrix.go-version }}
+
       - name: build
-        run: sh build/package/build.sh
+        run: sh ./build/package/build.sh
+
       - name: upload build file
         uses: actions/upload-artifact@v3
         with:
