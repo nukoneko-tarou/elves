@@ -8,7 +8,7 @@ on:
         required: true 
 
 jobs: 
-  build:
+  Build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -35,8 +35,9 @@ jobs:
             binary/elves_${{ github.event.inputs.version }}_linux_amd64
             binary/elves_${{ github.event.inputs.version }}_linux_arm64
 
-  release:
+  Release:
     runs-on: ubuntu-latest
+    needs: build
     steps:
       - uses: actions/checkout@v3
 
