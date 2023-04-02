@@ -34,3 +34,28 @@ jobs:
             binary/elves_${{ github.event.inputs.version }}_linux_364
             binary/elves_${{ github.event.inputs.version }}_linux_amd64
             binary/elves_${{ github.event.inputs.version }}_linux_arm64
+
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: go-build-data
+          path: |
+            elves_${{ github.event.inputs.version }}_darwin_amd64
+            elves_${{ github.event.inputs.version }}_darwin_arm64
+            elves_${{ github.event.inputs.version }}_linux_364
+            elves_${{ github.event.inputs.version }}_linux_amd64
+            elves_${{ github.event.inputs.version }}_linux_arm64
+
+      - name: Create tag
+        run: |
+          git tag ${{ github.event.inputs.version }}
+          git push origin ${{ github.event.inputs.version }}
+
+      - name: Create release
+        run: |
+          gh release create ${{ github.event.inputs.version }}
+          gh release upload ${{ github.event.inputs.version }} elves_${{ github.event.inputs.version }}_darwin_amd64 elves_${{ github.event.inputs.version }}_darwin_arm64 elves_${{ github.event.inputs.version }}_linux_364 elves_${{ github.event.inputs.version }}_linux_amd64 elves_${{ github.event.inputs.version }}_linux_arm64
