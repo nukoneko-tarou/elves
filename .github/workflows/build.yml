@@ -1,6 +1,11 @@
 name: build
 
-on: [ workflow_dispatch ]
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version'
+        required: true 
 
 jobs: 
   build:
@@ -11,16 +16,21 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: set up go
+      - name: Set up go
         uses: actions/setup-go@v4
         with:
           go-version: ${{ matrix.go-version }}
 
-      - name: build
+      - name: Build
         run: sh ./build/package/build.sh
 
-      - name: upload build file
+      - name: Upload build file
         uses: actions/upload-artifact@v3
         with:
           name: go-build-data
-          path: binary
+          path: |
+            binary/elves_${{ github.event.inputs.name }}_darwin_amd64
+            binary/elves_${{ github.event.inputs.name }}_darwin_arm64
+            binary/elves_${{ github.event.inputs.name }}_linux_364
+            binary/elves_${{ github.event.inputs.name }}_linux_amd64
+            binary/elves_${{ github.event.inputs.name }}_linux_arm64
