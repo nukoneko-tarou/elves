@@ -18,7 +18,7 @@ Specify a json file after the create command.
 cd <target directory>
 elves create <json file path>
 ```
-e.g.
+e.g. https://github.com/golang-standards/project-layout
 ```shell
 elves create ../sample.json
 .
