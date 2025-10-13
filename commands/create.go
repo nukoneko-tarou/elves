@@ -5,8 +5,10 @@ package commands
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"errors"
+	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -53,29 +55,40 @@ func NewCreate() *Create {
 }
 
 func (c *Create) run(cmd *cobra.Command, args []string) error {
-	permission := "755"
+	permissionString := "755"
 	subDirectoryName := "./"
 
-	p, _ := cmd.Flags().GetString("permission")
-	sn, _ := cmd.Flags().GetString("sub")
-	gk, _ := cmd.Flags().GetBool("gitkeep")
-
+	p, err := cmd.Flags().GetString("permission")
+	if err != nil {
+		return err
+	}
 	if p != "" {
-		permission = p
+		permissionString = p
 	}
 
+	permission, err := strconv.ParseUint(permissionString, 8, 32)
+	if err != nil {
+		return fmt.Errorf("invalid permission value: %w", err)
+	}
+
+	sn, err := cmd.Flags().GetString("sub")
+	if err != nil {
+		return err
+	}
 	if sn != "" {
-		path := "./" + sn
-		perm32, _ := strconv.ParseUint(permission, 8, 32)
-		err := os.Mkdir(path, os.FileMode(perm32))
-		if err != nil {
+		path := filepath.Join(".", sn)
+		if err := os.Mkdir(path, os.FileMode(permission)); err != nil {
 			return err
 		}
-
 		subDirectoryName = path
 	}
 
-	raw, err := ioutil.ReadFile(args[0])
+	gk, err := cmd.Flags().GetBool("gitkeep")
+	if err != nil {
+		return err
+	}
+
+	raw, err := os.ReadFile(args[0])
 	if err != nil {
 		return err
 	}
@@ -84,8 +97,11 @@ func (c *Create) run(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	if len(tree) == 0 || len(tree[0].Contents) == 0 {
+		return errors.New("invalid or empty json file")
+	}
 
-	err = c.createDirectory(tree[0].Contents, subDirectoryName, permission, gk)
+	err = c.createDirectory(tree[0].Contents, subDirectoryName, os.FileMode(permission), gk)
 	if err != nil {
 		return err
 	}
@@ -102,25 +118,25 @@ func (c *Create) perseJson(raw []byte) (TreeJson, error) {
 	return fc, nil
 }
 
-func (c *Create) createDirectory(contents []DirectoryJson, parentName string, permission string, isCreateGitkeep bool) error {
+func (c *Create) createDirectory(contents []DirectoryJson, parentName string, permission os.FileMode, isCreateGitkeep bool) error {
 	for _, v := range contents {
 		if v.Type == "directory" {
-			path := parentName + "/"
-			perm32, _ := strconv.ParseUint(permission, 8, 32)
+			path := filepath.Join(parentName, v.Name)
 
-			if err := os.Mkdir(path+v.Name, os.FileMode(perm32)); err != nil {
+			if err := os.Mkdir(path, permission); err != nil {
 				return err
 			}
 
 			if isCreateGitkeep {
-				_, err := os.Create(path + v.Name + "/.gitkeep")
-				if err != nil {
+				if _, err := os.Create(filepath.Join(path, ".gitkeep")); err != nil {
 					return err
 				}
 			}
 
 			if len(v.Contents) != 0 {
-				c.createDirectory(v.Contents, path+v.Name, permission, isCreateGitkeep)
+				if err := c.createDirectory(v.Contents, path, permission, isCreateGitkeep); err != nil {
+					return err
+				}
 			}
 		}
 	}
