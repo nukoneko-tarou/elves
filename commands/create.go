@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -50,40 +51,25 @@ func NewCreate() *Create {
 	cmd.Cmd.Flags().StringP("permission", "p", "", "permission")
 	cmd.Cmd.Flags().StringP("sub", "s", "", "Create in subdirectory")
 	cmd.Cmd.Flags().BoolP("gitkeep", "g", false, "Create .gitkeep")
+	cmd.Cmd.Flags().BoolP("dry-run", "d", false, "Dry run")
 
 	return cmd
 }
 
 func (c *Create) run(cmd *cobra.Command, args []string) error {
-	permissionString := "755"
-	subDirectoryName := "./"
-
 	p, err := cmd.Flags().GetString("permission")
 	if err != nil {
 		return err
 	}
-	if p != "" {
-		permissionString = p
-	}
-
-	permission, err := strconv.ParseUint(permissionString, 8, 32)
-	if err != nil {
-		return fmt.Errorf("invalid permission value: %w", err)
-	}
-
 	sn, err := cmd.Flags().GetString("sub")
 	if err != nil {
 		return err
 	}
-	if sn != "" {
-		path := filepath.Join(".", sn)
-		if err := os.Mkdir(path, os.FileMode(permission)); err != nil {
-			return err
-		}
-		subDirectoryName = path
-	}
-
 	gk, err := cmd.Flags().GetBool("gitkeep")
+	if err != nil {
+		return err
+	}
+	dr, err := cmd.Flags().GetBool("dry-run")
 	if err != nil {
 		return err
 	}
@@ -101,12 +87,72 @@ func (c *Create) run(cmd *cobra.Command, args []string) error {
 		return errors.New("invalid or empty json file")
 	}
 
+	if dr {
+		subDirectoryName := "."
+		if sn != "" {
+			subDirectoryName = sn
+		}
+		fmt.Fprintln(cmd.OutOrStdout(), subDirectoryName)
+		c.printDirectoryTree(cmd.OutOrStdout(), tree[0].Contents, "", gk)
+
+		return nil
+	}
+
+	permissionString := "755"
+	subDirectoryName := "./"
+
+	if p != "" {
+		permissionString = p
+	}
+
+	permission, err := strconv.ParseUint(permissionString, 8, 32)
+	if err != nil {
+		return fmt.Errorf("invalid permission value: %w", err)
+	}
+
+	if sn != "" {
+		path := filepath.Join(".", sn)
+		if err := os.Mkdir(path, os.FileMode(permission)); err != nil {
+			return err
+		}
+		subDirectoryName = path
+	}
+
 	err = c.createDirectory(tree[0].Contents, subDirectoryName, os.FileMode(permission), gk)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (c *Create) printDirectoryTree(w io.Writer, contents []DirectoryJson, prefix string, isCreateGitkeep bool) {
+	for i, v := range contents {
+		if v.Type == "directory" {
+			connector := "├── "
+			if i == len(contents)-1 {
+				connector = "└── "
+			}
+			fmt.Fprintf(w, "%s%s%s\n", prefix, connector, v.Name)
+
+			newPrefix := prefix + "│   "
+			if i == len(contents)-1 {
+				newPrefix = prefix + "    "
+			}
+
+			if isCreateGitkeep {
+				gitkeepConnector := "├── "
+				if len(v.Contents) == 0 {
+					gitkeepConnector = "└── "
+				}
+				fmt.Fprintf(w, "%s%s.gitkeep\n", newPrefix, gitkeepConnector)
+			}
+
+			if len(v.Contents) != 0 {
+				c.printDirectoryTree(w, v.Contents, newPrefix, isCreateGitkeep)
+			}
+		}
+	}
 }
 
 func (c *Create) perseJson(raw []byte) (TreeJson, error) {

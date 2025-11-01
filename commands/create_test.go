@@ -109,6 +109,31 @@ func TestCreateCommand(t *testing.T) {
 		},
 	}
 
+	// Add a new test case for the dry-run feature
+	testCases = append(testCases, struct {
+		name          string
+		args          []string
+		jsonContent   string
+		expectError   bool
+		expectedPaths []string
+		permission    os.FileMode
+	}{
+		name: "Dry run",
+		args: []string{"test.json", "--dry-run"},
+		jsonContent: `[
+			{
+				"type": "directory",
+				"name": "root",
+				"contents": [
+					{ "type": "directory", "name": "dir1" },
+					{ "type": "directory", "name": "dir2" }
+				]
+			}
+		]`,
+		expectError:   false,
+		expectedPaths: []string{}, // No paths should be created
+	})
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			if runtime.GOOS != "windows" {
@@ -152,23 +177,40 @@ func TestCreateCommand(t *testing.T) {
 				t.Fatalf("Did not expect an error, but got: %v", err)
 			}
 
-			// Verify created paths and permissions
-			for _, p := range tc.expectedPaths {
-				fullPath := filepath.Join(tempDir, p)
-				info, err := os.Stat(fullPath)
-				if os.IsNotExist(err) {
-					t.Errorf("Expected path to exist, but it doesn't: %s", p)
-					continue
-				}
-				if err != nil {
-					t.Errorf("Error stating path %s: %v", p, err)
-					continue
+			if tc.name == "Dry run" {
+				// Check output for dry run
+				expectedOutput := ".\n├── dir1\n└── dir2\n"
+				out := cmd.OutOrStdout().(*bytes.Buffer).String()
+				if out != expectedOutput {
+					t.Errorf("Expected output:\n%s\nGot:\n%s", expectedOutput, out)
 				}
 
-				// Check permission only for directories on non-windows systems
-				if info.IsDir() && runtime.GOOS != "windows" {
-					if info.Mode().Perm() != tc.permission {
-						t.Errorf("Expected permission %v for %s, but got %v", tc.permission, p, info.Mode().Perm())
+				// Check that no directories were created
+				for _, p := range []string{"dir1", "dir2"} {
+					fullPath := filepath.Join(tempDir, p)
+					if _, err := os.Stat(fullPath); !os.IsNotExist(err) {
+						t.Errorf("Expected path not to exist, but it does: %s", p)
+					}
+				}
+			} else {
+				// Verify created paths and permissions
+				for _, p := range tc.expectedPaths {
+					fullPath := filepath.Join(tempDir, p)
+					info, err := os.Stat(fullPath)
+					if os.IsNotExist(err) {
+						t.Errorf("Expected path to exist, but it doesn't: %s", p)
+						continue
+					}
+					if err != nil {
+						t.Errorf("Error stating path %s: %v", p, err)
+						continue
+					}
+
+					// Check permission only for directories on non-windows systems
+					if info.IsDir() && runtime.GOOS != "windows" {
+						if info.Mode().Perm() != tc.permission {
+							t.Errorf("Expected permission %v for %s, but got %v", tc.permission, p, info.Mode().Perm())
+						}
 					}
 				}
 			}
