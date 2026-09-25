@@ -8,11 +8,8 @@ on:
 
 jobs:
   test:
-    name: Test & Lint (Go ${{ matrix.go-version }})
+    name: Test & Lint
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        go-version: ['1.23', '1.24']
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -20,7 +17,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ matrix.go-version }}
+          go-version: '1.26'
           cache: true
 
       - name: Verify code formatting (gofmt)

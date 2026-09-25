@@ -49,13 +49,13 @@ func Build(nodes []Node, opts BuildOptions) error {
 	ctx, cancel := context.WithCancelCause(context.Background())
 	defer cancel(nil)
 
-	r := &runner{
+	r := new(runner{
 		ctx:        ctx,
 		cancel:     cancel,
 		sem:        make(chan struct{}, concurrency),
 		permission: opts.Permission,
 		gitkeep:    opts.Gitkeep,
-	}
+	})
 
 	r.processNodes(nodes, targetDir)
 	r.wg.Wait()
