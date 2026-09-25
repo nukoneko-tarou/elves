@@ -10,6 +10,8 @@ builds:
     binary: elves
     env:
       - CGO_ENABLED=0
+    ldflags:
+      - -s -w -X github.com/nukoneko-tarou/elves/commands.Version={{.Version}}
     goos:
       - darwin
       - linux
