@@ -104,4 +104,27 @@ func TestBuild(t *testing.T) {
 			t.Errorf("expected permission 0777, got %v", info.Mode().Perm())
 		}
 	})
+
+	t.Run("Synchronous build with Concurrency=1", func(t *testing.T) {
+		tempDir := t.TempDir()
+		opts := BuildOptions{
+			BaseDir:     tempDir,
+			Permission:  0755,
+			Gitkeep:     true,
+			Concurrency: 1,
+		}
+
+		if err := Build(nodes, opts); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		appDir := filepath.Join(tempDir, "app")
+		if info, err := os.Stat(appDir); err != nil || !info.IsDir() {
+			t.Fatalf("expected app directory to exist")
+		}
+		gitkeep := filepath.Join(appDir, ".gitkeep")
+		if _, err := os.Stat(gitkeep); err != nil {
+			t.Fatalf("expected .gitkeep to exist in synchronous mode")
+		}
+	})
 }

@@ -96,6 +96,42 @@ func TestCreateCommand(t *testing.T) {
 			permission: 0777,
 		},
 		{
+			name: "With --concurrency 1 flag (synchronous)",
+			args: []string{"test.json", "--concurrency", "1"},
+			jsonContent: `[
+				{
+					"type": "directory",
+					"name": "root",
+					"contents": [
+						{ "type": "directory", "name": "sync-dir" }
+					]
+				}
+			]`,
+			expectError: false,
+			expectedPaths: []string{
+				"sync-dir",
+			},
+			permission: 0755,
+		},
+		{
+			name: "With -c 4 flag (concurrent)",
+			args: []string{"test.json", "-c", "4"},
+			jsonContent: `[
+				{
+					"type": "directory",
+					"name": "root",
+					"contents": [
+						{ "type": "directory", "name": "c-dir" }
+					]
+				}
+			]`,
+			expectError: false,
+			expectedPaths: []string{
+				"c-dir",
+			},
+			permission: 0755,
+		},
+		{
 			name:        "Invalid permission",
 			args:        []string{"test.json", "--permission", "invalid"},
 			jsonContent: `[{"type": "directory", "name": "root", "contents": [{"type": "directory", "name": "d"}]}]`,

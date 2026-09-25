@@ -35,6 +35,7 @@ func NewCreate() *Create {
 	cmd.Cmd.Flags().StringP("sub", "s", "", "Create in subdirectory")
 	cmd.Cmd.Flags().BoolP("gitkeep", "g", false, "Create .gitkeep")
 	cmd.Cmd.Flags().BoolP("dry-run", "d", false, "Dry run")
+	cmd.Cmd.Flags().IntP("concurrency", "c", tree.DefaultConcurrency, "Concurrent workers for directory creation")
 
 	return cmd
 }
@@ -53,6 +54,10 @@ func (c *Create) run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	dr, err := cmd.Flags().GetBool("dry-run")
+	if err != nil {
+		return err
+	}
+	concurrency, err := cmd.Flags().GetInt("concurrency")
 	if err != nil {
 		return err
 	}
@@ -92,9 +97,10 @@ func (c *Create) run(cmd *cobra.Command, args []string) error {
 	}
 
 	return tree.Build(rootNodes, tree.BuildOptions{
-		BaseDir:    ".",
-		SubDir:     sn,
-		Permission: os.FileMode(permission),
-		Gitkeep:    gk,
+		BaseDir:     ".",
+		SubDir:      sn,
+		Permission:  os.FileMode(permission),
+		Gitkeep:     gk,
+		Concurrency: concurrency,
 	})
 }
