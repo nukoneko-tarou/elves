@@ -20,22 +20,24 @@ type Create struct {
 func NewCreate() *Create {
 	cmd := &Create{}
 	cmd.Cmd = &cobra.Command{
-		Use:   "create",
-		Short: "Create a directory",
-		Long:  `Creates a directory where the command is executed`,
-		Args:  cobra.MinimumNArgs(1),
+		Use:   "create <json-file>",
+		Short: "Scaffold directory structure from a JSON file",
+		Long:  `Scaffold directory structures from JSON files compatible with UNIX 'tree -J' command output.`,
+		Args:  cobra.ExactArgs(1),
 		RunE:  cmd.run,
 		Example: strings.Join([]string{
-			"elves create ./sample.json",
-			"elves create ./sample.json --sub new-project --permission 777",
+			"  elves create ./sample.json",
+			"  elves create ./sample.json --dry-run",
+			"  elves create ./sample.json --sub my-project --permission 755",
+			"  elves create ./sample.json --gitkeep --concurrency 4",
 		}, "\n"),
 	}
 
-	cmd.Cmd.Flags().StringP("permission", "p", "", "permission")
-	cmd.Cmd.Flags().StringP("sub", "s", "", "Create in subdirectory")
-	cmd.Cmd.Flags().BoolP("gitkeep", "g", false, "Create .gitkeep")
-	cmd.Cmd.Flags().BoolP("dry-run", "d", false, "Dry run")
-	cmd.Cmd.Flags().IntP("concurrency", "c", tree.DefaultConcurrency, "Concurrent workers for directory creation")
+	cmd.Cmd.Flags().StringP("permission", "p", "", "Directory permissions in octal format (default \"755\")")
+	cmd.Cmd.Flags().StringP("sub", "s", "", "Create project structure inside specified subdirectory")
+	cmd.Cmd.Flags().BoolP("gitkeep", "g", false, "Create .gitkeep files in generated directories")
+	cmd.Cmd.Flags().BoolP("dry-run", "d", false, "Preview directory tree without writing to disk")
+	cmd.Cmd.Flags().IntP("concurrency", "c", tree.DefaultConcurrency, "Number of concurrent workers for directory creation")
 
 	return cmd
 }
