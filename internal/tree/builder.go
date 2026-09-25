@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"syscall"
 )
 
 // DefaultConcurrency is the empirically optimal concurrency level for local filesystems,
@@ -66,26 +67,44 @@ func Build(nodes []Node, opts BuildOptions) error {
 	return nil
 }
 
+// createEmptyFile creates an empty file using low-level syscalls to eliminate
+// runtime poller registration, finalizer, and heap allocation overheads of os.Create.
+func createEmptyFile(path string) error {
+	fd, err := syscall.Open(path, syscall.O_CREAT|syscall.O_WRONLY|syscall.O_TRUNC, 0666)
+	if err != nil {
+		return err
+	}
+	return syscall.Close(fd)
+}
+
+func joinPath(dir, name string) string {
+	if dir == "." {
+		return name
+	}
+	if len(dir) > 0 && (dir[len(dir)-1] == '/' || dir[len(dir)-1] == filepath.Separator) {
+		return dir + name
+	}
+	return dir + string(filepath.Separator) + name
+}
+
 func buildSynchronous(nodes []Node, parentDir string, permission os.FileMode, gitkeep bool) error {
-	dirs := filterDirectories(nodes)
-	for _, n := range dirs {
-		path := filepath.Join(parentDir, n.Name)
+	for i := range nodes {
+		if nodes[i].Type != NodeTypeDirectory {
+			continue
+		}
+		path := joinPath(parentDir, nodes[i].Name)
 		if err := os.Mkdir(path, permission); err != nil {
 			return err
 		}
 
 		if gitkeep {
-			f, err := os.Create(filepath.Join(path, ".gitkeep"))
-			if err != nil {
-				return err
-			}
-			if err := f.Close(); err != nil {
+			if err := createEmptyFile(joinPath(path, ".gitkeep")); err != nil {
 				return err
 			}
 		}
 
-		if len(n.Contents) > 0 {
-			if err := buildSynchronous(n.Contents, path, permission, gitkeep); err != nil {
+		if len(nodes[i].Contents) > 0 {
+			if err := buildSynchronous(nodes[i].Contents, path, permission, gitkeep); err != nil {
 				return err
 			}
 		}
@@ -114,50 +133,62 @@ func (r *runner) setError(err error) {
 }
 
 func (r *runner) processNodes(nodes []Node, parentDir string) {
-	dirs := filterDirectories(nodes)
-	for _, n := range dirs {
+	// Count directories without allocating a new slice
+	var dirIndices []int
+	for i := range nodes {
+		if nodes[i].Type == NodeTypeDirectory {
+			dirIndices = append(dirIndices, i)
+		}
+	}
+
+	if len(dirIndices) == 0 {
+		return
+	}
+
+	// Run all but the last directory in worker goroutines if semaphore has space,
+	// and run the last directory directly in the current goroutine.
+	for i := 0; i < len(dirIndices)-1; i++ {
 		if r.ctx.Err() != nil {
 			return
 		}
 
-		childNode := n
+		nodeIdx := dirIndices[i]
 		select {
 		case r.sem <- struct{}{}:
 			r.wg.Add(1)
-			go func() {
+			go func(idx int) {
 				defer func() {
 					<-r.sem
 					r.wg.Done()
 				}()
-				r.processSingleDir(childNode, parentDir)
-			}()
+				r.processSingleDir(&nodes[idx], parentDir)
+			}(nodeIdx)
 		case <-r.ctx.Done():
 			return
 		default:
-			// When semaphore buffer is busy, execute synchronously in the current goroutine
-			r.processSingleDir(childNode, parentDir)
+			// Run synchronously if semaphore is occupied
+			r.processSingleDir(&nodes[nodeIdx], parentDir)
 		}
 	}
+
+	// Execute the final directory in the current goroutine to save goroutine spawn costs
+	lastIdx := dirIndices[len(dirIndices)-1]
+	r.processSingleDir(&nodes[lastIdx], parentDir)
 }
 
-func (r *runner) processSingleDir(n Node, parentDir string) {
+func (r *runner) processSingleDir(n *Node, parentDir string) {
 	if r.ctx.Err() != nil {
 		return
 	}
 
-	path := filepath.Join(parentDir, n.Name)
+	path := joinPath(parentDir, n.Name)
 	if err := os.Mkdir(path, r.permission); err != nil {
 		r.setError(err)
 		return
 	}
 
 	if r.gitkeep {
-		f, err := os.Create(filepath.Join(path, ".gitkeep"))
-		if err != nil {
-			r.setError(err)
-			return
-		}
-		if err := f.Close(); err != nil {
+		if err := createEmptyFile(joinPath(path, ".gitkeep")); err != nil {
 			r.setError(err)
 			return
 		}
@@ -166,14 +197,4 @@ func (r *runner) processSingleDir(n Node, parentDir string) {
 	if len(n.Contents) > 0 {
 		r.processNodes(n.Contents, path)
 	}
-}
-
-func filterDirectories(nodes []Node) []Node {
-	var dirs []Node
-	for _, n := range nodes {
-		if n.Type == NodeTypeDirectory {
-			dirs = append(dirs, n)
-		}
-	}
-	return dirs
 }

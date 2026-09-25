@@ -24,10 +24,33 @@ func generateBenchTree(depth, breadth int) []Node {
 	return nodes
 }
 
-func BenchmarkBuildConcurrency(b *testing.B) {
+func BenchmarkBuildNoGitkeep(b *testing.B) {
 	tree := generateBenchTree(4, 4)
 
-	concurrencies := []int{1, 2, 4, 8, 16, 32}
+	concurrencies := []int{1, 2, 4}
+	for _, c := range concurrencies {
+		b.Run(fmt.Sprintf("concurrency=%d", c), func(b *testing.B) {
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				tempDir := b.TempDir()
+				opts := BuildOptions{
+					BaseDir:     tempDir,
+					Permission:  0755,
+					Gitkeep:     false,
+					Concurrency: c,
+				}
+				if err := Build(tree, opts); err != nil {
+					b.Fatalf("build failed: %v", err)
+				}
+			}
+		})
+	}
+}
+
+func BenchmarkBuildWithGitkeep(b *testing.B) {
+	tree := generateBenchTree(4, 4)
+
+	concurrencies := []int{1, 2, 4}
 	for _, c := range concurrencies {
 		b.Run(fmt.Sprintf("concurrency=%d", c), func(b *testing.B) {
 			b.ResetTimer()
