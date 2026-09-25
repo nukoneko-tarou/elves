@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var Version = "1.2.0"
+var Version = "1.2.1"
 
 type VersionCommand struct {
 	Cmd *cobra.Command
