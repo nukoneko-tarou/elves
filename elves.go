@@ -13,9 +13,10 @@ import (
 
 func main() {
 	cmd := cobra.Command{
-		Use:   "elves",
-		Short: "Tool to generate directories from json files",
-		Long:  `Tool to generate directories from json files`,
+		Use:     "elves",
+		Short:   "Tool to generate directories from json files",
+		Long:    `Tool to generate directories from json files`,
+		Version: commands.Version,
 	}
 
 	cmd.AddCommand(commands.NewVersion().Cmd)

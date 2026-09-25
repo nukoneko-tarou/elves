@@ -9,22 +9,24 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type Version struct {
+var Version = "1.1.0"
+
+type VersionCommand struct {
 	Cmd *cobra.Command
 }
 
-func NewVersion() *Version {
-	cmd := &Version{}
+func NewVersion() *VersionCommand {
+	cmd := &VersionCommand{}
 	cmd.Cmd = &cobra.Command{
 		Use:   "version",
-		Short: "version",
-		Long:  `version`,
+		Short: "Print the version number of elves",
+		Long:  `Print the version number of elves`,
 		Run:   cmd.run,
 	}
 
 	return cmd
 }
 
-func (c *Version) run(cmd *cobra.Command, _ []string) {
-	fmt.Println("elves version 1.1.0")
+func (c *VersionCommand) run(cmd *cobra.Command, _ []string) {
+	fmt.Printf("elves version %s\n", Version)
 }
