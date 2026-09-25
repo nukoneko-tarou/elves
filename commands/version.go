@@ -28,5 +28,5 @@ func NewVersion() *VersionCommand {
 }
 
 func (c *VersionCommand) run(cmd *cobra.Command, _ []string) {
-	fmt.Printf("elves version %s\n", Version)
+	fmt.Fprintf(cmd.OutOrStdout(), "elves version %s\n", Version)
 }

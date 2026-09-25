@@ -96,6 +96,12 @@ func TestCreateCommand(t *testing.T) {
 			permission: 0777,
 		},
 		{
+			name:        "Invalid permission",
+			args:        []string{"test.json", "--permission", "invalid"},
+			jsonContent: `[{"type": "directory", "name": "root", "contents": [{"type": "directory", "name": "d"}]}]`,
+			expectError: true,
+		},
+		{
 			name:        "Invalid JSON",
 			args:        []string{"test.json"},
 			jsonContent: `invalid json`,
